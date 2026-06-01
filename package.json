@@ -1,6 +1,6 @@
 {
   "name": "curlit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A no-frills REST client that syncs through a private GitHub repo.",
   "author": "Afstkla",
   "main": "src/main/main.js",

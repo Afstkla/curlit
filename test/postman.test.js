@@ -41,3 +41,12 @@ test('auth type synced, secret routed out (not in collection JSON)', () => {
   assert.strictEqual(JSON.stringify(collection).includes('SECRET'), false)
   assert.strictEqual(secrets[get.id].token, 'SECRET')
 })
+
+test('two separate imports get distinct ids (no overwrite)', () => {
+  const A = { info: { name: 'A' }, item: [{ name: 'r', request: { method: 'GET', url: { raw: 'https://a' } } }] }
+  const B = { info: { name: 'B' }, item: [{ name: 'r', request: { method: 'GET', url: { raw: 'https://b' } } }] }
+  const a = importPostman(A)
+  const b = importPostman(B)
+  assert.notStrictEqual(a.collection.id, b.collection.id, 'collection ids must differ across imports')
+  assert.notStrictEqual(a.collection.items[0].id, b.collection.items[0].id, 'request ids must differ across imports')
+})

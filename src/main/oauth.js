@@ -5,11 +5,15 @@ const TOKEN_URL = 'https://github.com/login/oauth/access_token'
 const GRANT = 'urn:ietf:params:oauth:grant-type:device_code'
 const UA = 'curlit'
 
-async function requestDeviceCode(clientId, scope = 'repo') {
+async function requestDeviceCode(clientId, scope) {
+  // GitHub Apps use installed permissions, not scopes — omit `scope` for them.
+  // (Kept optional so an OAuth App could still pass e.g. 'repo'.)
+  const body = { client_id: clientId }
+  if (scope) body.scope = scope
   const res = await request(DEVICE_CODE_URL, {
     method: 'POST',
     headers: { accept: 'application/json', 'content-type': 'application/json', 'user-agent': UA },
-    body: JSON.stringify({ client_id: clientId, scope })
+    body: JSON.stringify(body)
   })
   const j = JSON.parse(await res.body.text())
   if (j.error) throw new Error(j.error_description || j.error)

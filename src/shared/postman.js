@@ -1,8 +1,13 @@
 const { splitSecrets } = require('./secrets')
 
 function idFactory() {
+  // Unique seed per import so ids never collide across separate imports
+  // (a plain counter restarts at 1 each call -> every import's collection got
+  // the same id and overwrote the previous file). Counter keeps ids unique
+  // within one import.
   let n = 0
-  return () => { n += 1; return 'imp_' + n }
+  const seed = Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+  return () => { n += 1; return 'imp_' + seed + '_' + n }
 }
 
 function mapBody(body) {
