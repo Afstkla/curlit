@@ -1,0 +1,26 @@
+{
+  "name": "curlit",
+  "version": "0.1.0",
+  "description": "A no-frills REST client that syncs through a private GitHub repo.",
+  "main": "src/main/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "dist": "electron-builder --mac"
+  },
+  "dependencies": {
+    "isomorphic-git": "^1.27.1",
+    "undici": "^6.19.8"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "io.neople.curlit",
+    "productName": "Curlit",
+    "files": ["src/**/*", "node_modules/**/*", "package.json"],
+    "mac": { "target": "dmg", "category": "public.app-category.developer-tools" }
+  }
+}
