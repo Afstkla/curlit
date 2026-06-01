@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Curlit preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // Mock backend so we can see the full UI without Electron / a real repo.
+    const _sample = [{
+      id: 'col_demo', name: 'Acme API',
+      items: [
+        { type: 'folder', name: 'Users', items: [
+          { type: 'request', id: 'r1', name: 'List users', method: 'GET', url: 'https://api.acme.dev/v1/users?limit=20',
+            params: [{key:'limit',value:'20',enabled:true}], headers: [{key:'Accept',value:'application/json',enabled:true}],
+            body: { type:'none', content:'', fields:[] }, auth: { type:'bearer' } },
+          { type: 'request', id: 'r2', name: 'Create user', method: 'POST', url: 'https://api.acme.dev/v1/users',
+            params: [], headers: [], body: { type:'json', content:'{\n  "name": "Ada"\n}', fields:[] }, auth: { type:'none' } },
+        ]},
+        { type: 'request', id: 'r3', name: 'Delete order', method: 'DELETE', url: 'https://api.acme.dev/v1/orders/42',
+          params: [], headers: [], body:{type:'none',content:'',fields:[]}, auth:{ type:'apikey', name:'X-Api-Key', in:'header' } },
+        { type: 'request', id: 'r4', name: 'Update profile', method: 'PUT', url: 'https://api.acme.dev/v1/me',
+          params: [], headers: [], body:{type:'none',content:'',fields:[]}, auth:{ type:'none' } },
+      ]
+    }]
+    window.curlit = {
+      getSetup: async () => ({ repoUrl: 'https://github.com/acme/collections.git' }),
+      saveSetup: async () => true,
+      launchPull: async () => true,
+      listTree: async () => JSON.parse(JSON.stringify(_sample)),
+      saveCollection: async () => true,
+      deleteCollection: async () => true,
+      getSecret: async () => ({ token: 'demo-token-xxx' }),
+      setSecret: async () => true,
+      importPostman: async () => null,
+      sendRequest: async () => ({ ok:true, status:200, timeMs:148, size:213,
+        headers: { 'content-type':'application/json', 'x-request-id':'req_8f3a', 'cache-control':'no-store' },
+        body: JSON.stringify({ data:[{ id:1, name:'Ada Lovelace', active:true, roles:['admin','user'] },{ id:2, name:'Alan Turing', active:false, roles:[] }], total:2, next:null }) })
+    }
+  </script>
+</head>
+<body>
+  <div id="setup" class="setup hidden"></div>
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div class="brand-mark sm">curlit<span class="cursor">_</span></div>
+        <div class="sidebar-actions">
+          <button id="new-collection" class="icon-btn" title="New collection">＋</button>
+          <button id="import-postman" class="icon-btn" title="Import from Postman">⇪</button>
+        </div>
+      </div>
+      <div id="tree" class="tree"></div>
+      <div class="sidebar-foot"><span id="sync-dot" class="sync-dot"></span><span id="sync-label">synced</span></div>
+    </aside>
+    <main class="main">
+      <div id="empty-state" class="empty-state"><div class="empty-art">↯</div><p>Select a request, or make a new one.</p><p class="muted">No request open.</p></div>
+      <section id="editor" class="editor hidden">
+        <div class="bar">
+          <select id="method" class="method-select"></select>
+          <input id="url" class="url-input" type="text" spellcheck="false" />
+          <button id="send" class="btn-send">Send</button>
+          <button id="save" class="btn-ghost">Save</button>
+        </div>
+        <nav class="tabs" id="req-tabs">
+          <button class="tab active" data-tab="params">Params</button>
+          <button class="tab" data-tab="headers">Headers</button>
+          <button class="tab" data-tab="body">Body</button>
+          <button class="tab" data-tab="auth">Auth</button>
+        </nav>
+        <div class="tab-body">
+          <div class="pane active" data-pane="params"><div id="params-rows" class="kv"></div></div>
+          <div class="pane" data-pane="headers"><div id="headers-rows" class="kv"></div></div>
+          <div class="pane" data-pane="body">
+            <div class="body-controls"><select id="body-type" class="mini-select"><option value="none">None</option><option value="json">JSON</option><option value="text">Text</option><option value="urlencoded">Form (urlencoded)</option></select></div>
+            <textarea id="body-text" class="code-area hidden" spellcheck="false"></textarea>
+            <div id="body-fields" class="kv hidden"></div>
+          </div>
+          <div class="pane" data-pane="auth">
+            <div class="auth-controls"><select id="auth-type" class="mini-select"><option value="none">No Auth</option><option value="bearer">Bearer Token</option><option value="basic">Basic Auth</option><option value="apikey">API Key</option></select><span class="auth-note">secrets stay local — never synced</span></div>
+            <div id="auth-fields" class="auth-fields"></div>
+          </div>
+        </div>
+        <section id="response" class="response">
+          <div class="resp-head">
+            <span id="resp-status" class="status-pill idle">—</span>
+            <span id="resp-meta" class="resp-meta"></span>
+            <div class="resp-tabs"><button class="rtab active" data-rtab="body">Body</button><button class="rtab" data-rtab="headers">Headers</button></div>
+            <button id="resp-copy" class="btn-ghost sm">Copy</button>
+          </div>
+          <pre id="resp-body" class="resp-body"><span class="muted">Send a request to see the response.</span></pre>
+          <div id="resp-headers" class="resp-headers hidden"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    // Drive the preview into a representative state for screenshotting.
+    setTimeout(async () => {
+      if (typeof collections !== 'undefined' && collections.length) {
+        const folder = collections[0].items[0]
+        openRequest(collections[0], folder.items[0])   // "List users" (bearer)
+        await sendCurrent()
+      }
+    }, 500)
+  </script>
+</body>
+</html>

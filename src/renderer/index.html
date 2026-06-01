@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'" />
+  <title>Curlit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Setup gate -->
+  <div id="setup" class="setup hidden">
+    <div class="setup-card">
+      <div class="brand-mark">curlit<span class="cursor">_</span></div>
+      <p class="setup-lede">Point Curlit at your private GitHub repo. Your collections sync there; secrets stay on this Mac.</p>
+      <label class="field">
+        <span>Repo URL <em>(HTTPS)</em></span>
+        <input id="setup-repo" type="text" spellcheck="false" placeholder="https://github.com/your-org/curlit-collections.git" />
+      </label>
+      <label class="field">
+        <span>GitHub token <em>(repo contents: read/write)</em></span>
+        <input id="setup-pat" type="password" spellcheck="false" placeholder="github_pat_…" />
+      </label>
+      <button id="setup-go" class="btn-primary">Connect</button>
+      <div id="setup-status" class="setup-status"></div>
+    </div>
+    <div class="setup-glow"></div>
+  </div>
+
+  <!-- App shell -->
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div class="brand-mark sm">curlit<span class="cursor">_</span></div>
+        <div class="sidebar-actions">
+          <button id="new-collection" class="icon-btn" title="New collection">＋</button>
+          <button id="import-postman" class="icon-btn" title="Import from Postman">⇪</button>
+        </div>
+      </div>
+      <div id="tree" class="tree"></div>
+      <div class="sidebar-foot">
+        <span id="sync-dot" class="sync-dot"></span>
+        <span id="sync-label">synced</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div id="empty-state" class="empty-state">
+        <div class="empty-art">↯</div>
+        <p>Select a request, or make a new one.</p>
+        <p class="muted">No request open.</p>
+      </div>
+
+      <section id="editor" class="editor hidden">
+        <div class="bar">
+          <select id="method" class="method-select"></select>
+          <input id="url" class="url-input" type="text" spellcheck="false" placeholder="https://api.example.com/v1/resource" />
+          <button id="send" class="btn-send">Send</button>
+          <button id="save" class="btn-ghost">Save</button>
+        </div>
+
+        <nav class="tabs" id="req-tabs">
+          <button class="tab active" data-tab="params">Params</button>
+          <button class="tab" data-tab="headers">Headers</button>
+          <button class="tab" data-tab="body">Body</button>
+          <button class="tab" data-tab="auth">Auth</button>
+        </nav>
+
+        <div class="tab-body">
+          <div class="pane active" data-pane="params"><div id="params-rows" class="kv"></div></div>
+          <div class="pane" data-pane="headers"><div id="headers-rows" class="kv"></div></div>
+          <div class="pane" data-pane="body">
+            <div class="body-controls">
+              <select id="body-type" class="mini-select">
+                <option value="none">None</option>
+                <option value="json">JSON</option>
+                <option value="text">Text</option>
+                <option value="urlencoded">Form (urlencoded)</option>
+              </select>
+            </div>
+            <textarea id="body-text" class="code-area hidden" spellcheck="false" placeholder='{ "key": "value" }'></textarea>
+            <div id="body-fields" class="kv hidden"></div>
+          </div>
+          <div class="pane" data-pane="auth">
+            <div class="auth-controls">
+              <select id="auth-type" class="mini-select">
+                <option value="none">No Auth</option>
+                <option value="bearer">Bearer Token</option>
+                <option value="basic">Basic Auth</option>
+                <option value="apikey">API Key</option>
+              </select>
+              <span class="auth-note">secrets stay local — never synced</span>
+            </div>
+            <div id="auth-fields" class="auth-fields"></div>
+          </div>
+        </div>
+
+        <section id="response" class="response">
+          <div class="resp-head">
+            <span id="resp-status" class="status-pill idle">—</span>
+            <span id="resp-meta" class="resp-meta"></span>
+            <div class="resp-tabs">
+              <button class="rtab active" data-rtab="body">Body</button>
+              <button class="rtab" data-rtab="headers">Headers</button>
+            </div>
+            <button id="resp-copy" class="btn-ghost sm">Copy</button>
+          </div>
+          <pre id="resp-body" class="resp-body"><span class="muted">Send a request to see the response.</span></pre>
+          <div id="resp-headers" class="resp-headers hidden"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

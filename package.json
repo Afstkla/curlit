@@ -15,12 +15,20 @@
   },
   "devDependencies": {
     "electron": "^31.0.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "jsdom": "^27.0.1"
   },
   "build": {
     "appId": "io.neople.curlit",
     "productName": "Curlit",
-    "files": ["src/**/*", "node_modules/**/*", "package.json"],
-    "mac": { "target": "dmg", "category": "public.app-category.developer-tools" }
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.developer-tools"
+    }
   }
 }
