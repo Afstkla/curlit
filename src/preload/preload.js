@@ -20,5 +20,6 @@ contextBridge.exposeInMainWorld('curlit', {
   openExternal: (url) => call('openExternal', url),
   checkUpdate: () => call('checkUpdate'),
   applyUpdate: (zipUrl) => call('applyUpdate', zipUrl),
-  onCheckUpdate: (cb) => ipcRenderer.on('menu:check-update', () => cb())
+  onCheckUpdate: (cb) => ipcRenderer.on('menu:check-update', () => cb()),
+  onUpdateProgress: (cb) => ipcRenderer.on('update:progress', (_e, p) => cb(p))
 })

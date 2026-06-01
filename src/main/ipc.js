@@ -114,9 +114,10 @@ function registerIpc() {
   // --- misc ---
   ipcMain.handle('openExternal', (_e, url) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return true })
   ipcMain.handle('checkUpdate', () => update.checkUpdate(app.getVersion()))
-  ipcMain.handle('applyUpdate', async (_e, zipUrl) => {
-    const r = await selfUpdate.applyUpdate(zipUrl, process.execPath)
-    if (r.ok) setTimeout(() => app.quit(), 400) // let the renderer get the reply, then quit so the swap can run
+  ipcMain.handle('applyUpdate', async (e, zipUrl) => {
+    const onProgress = (p) => { try { e.sender.send('update:progress', p) } catch { /* window gone */ } }
+    const r = await selfUpdate.applyUpdate(zipUrl, process.execPath, onProgress)
+    if (r.ok) setTimeout(() => app.quit(), 700) // let the renderer get the reply, then quit so the swap can run
     return r
   })
 }

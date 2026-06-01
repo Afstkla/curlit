@@ -172,6 +172,8 @@ input:focus, select:focus, textarea:focus { outline: none; }
 .btn-pill:hover { filter: brightness(1.08); }
 .banner-x { background: none; border: none; color: var(--ink-faint); cursor: pointer; font-size: 13px; padding: 2px 6px; }
 .banner-x:hover { color: var(--ink); }
+.update-progress { width: 140px; height: 6px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden; }
+.update-bar { height: 100%; width: 0%; background: var(--accent); border-radius: 999px; transition: width .12s linear; }
 
 /* ---------- app layout ---------- */
 .app { display: grid; grid-template-columns: 250px 1fr; height: 100vh; }

@@ -33,6 +33,7 @@
       checkUpdate: async () => ({ available: false }),
       applyUpdate: async () => ({ ok: true }),
       onCheckUpdate: () => {},
+      onUpdateProgress: () => {},
       launchPull: async () => true,
       listTree: async () => JSON.parse(JSON.stringify(_sample)),
       saveCollection: async () => true,

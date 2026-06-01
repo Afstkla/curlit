@@ -32,11 +32,17 @@ exit 0
 `
 }
 
-async function downloadTo(url, dest) {
+async function downloadTo(url, dest, onProgress) {
   const res = await request(url, { headers: { 'user-agent': 'curlit-updater' }, maxRedirections: 5 })
   if (res.statusCode !== 200) throw new Error('Download failed (HTTP ' + res.statusCode + ')')
+  const total = parseInt(res.headers['content-length'] || '0', 10)
+  let received = 0
   await new Promise((resolve, reject) => {
     const ws = fs.createWriteStream(dest)
+    res.body.on('data', (c) => {
+      received += c.length
+      if (onProgress) onProgress({ phase: 'download', received, total })
+    })
     res.body.pipe(ws)
     res.body.on('error', reject)
     ws.on('finish', resolve)
@@ -46,7 +52,7 @@ async function downloadTo(url, dest) {
 
 // Download the .app zip, swap it into place, and relaunch. Returns {ok} or {error}.
 // error === 'no-permission' means the install location needs admin rights.
-async function applyUpdate(zipUrl, execPath) {
+async function applyUpdate(zipUrl, execPath, onProgress) {
   const appBundle = currentAppBundle(execPath)
   if (!appBundle) return { error: 'In-place update only works from the installed app.' }
   try { fs.accessSync(path.dirname(appBundle), fs.constants.W_OK) }
@@ -54,7 +60,8 @@ async function applyUpdate(zipUrl, execPath) {
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'curlit-up-'))
   const zip = path.join(tmp, 'update.zip')
-  await downloadTo(zipUrl, zip)
+  await downloadTo(zipUrl, zip, onProgress)
+  if (onProgress) onProgress({ phase: 'install' })
   execSync(`ditto -x -k "${zip}" "${tmp}"`)
 
   const appName = path.basename(appBundle)

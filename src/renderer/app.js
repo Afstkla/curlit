@@ -105,6 +105,7 @@ async function startApp() {
   buildMethodSelect()
   wireEditor()
   if (api.onCheckUpdate) api.onCheckUpdate(() => checkForUpdate(true))
+  if (api.onUpdateProgress) api.onUpdateProgress(handleUpdateProgress)
   setSync('busy', 'pulling…')
   try { await api.launchPull() } catch {}
   await refreshTree()
@@ -127,17 +128,22 @@ async function checkForUpdate(manual) {
     if (!u || !u.available) { if (manual) showUpToDate(); return }
     const canInPlace = !!(u.zipUrl && api.applyUpdate)
     $('update-text').textContent = `Curlit ${u.version} is available`
+    $('update-progress').classList.add('hidden')
     const btn = $('update-download')
     btn.classList.remove('hidden')
     btn.textContent = canInPlace ? 'Update & restart' : 'Download'
     btn.disabled = false
     btn.onclick = async () => {
       if (!canInPlace) { api.openExternal(u.url); return }
-      btn.disabled = true; btn.textContent = 'Updating…'
+      btn.classList.add('hidden')
+      $('update-progress').classList.remove('hidden')
+      $('update-bar').style.width = '2%'
+      $('update-text').textContent = 'Starting download…'
       const r = await api.applyUpdate(u.zipUrl)
-      if (r && r.ok) { $('update-text').textContent = 'Restarting Curlit…' }
+      if (r && r.ok) { $('update-bar').style.width = '100%'; $('update-text').textContent = 'Restarting Curlit…' }
       else {
-        btn.disabled = false; btn.textContent = 'Download'
+        $('update-progress').classList.add('hidden')
+        btn.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Download'
         $('update-text').textContent = (r && r.error === 'no-permission')
           ? 'Couldn’t update in place — downloading instead:'
           : `Curlit ${u.version} is available`
@@ -147,6 +153,24 @@ async function checkForUpdate(manual) {
     $('update-dismiss').onclick = () => $('update-banner').classList.add('hidden')
     $('update-banner').classList.remove('hidden')
   } catch { /* update check is best-effort */ }
+}
+
+function handleUpdateProgress(p) {
+  $('update-progress').classList.remove('hidden')
+  const bar = $('update-bar')
+  if (p.phase === 'download') {
+    if (p.total) {
+      const pct = Math.max(2, Math.round(p.received / p.total * 100))
+      bar.style.width = pct + '%'
+      $('update-text').textContent = `Downloading update… ${pct}%`
+    } else {
+      bar.style.width = '60%'
+      $('update-text').textContent = `Downloading update… ${(p.received / 1048576).toFixed(0)} MB`
+    }
+  } else if (p.phase === 'install') {
+    bar.style.width = '100%'
+    $('update-text').textContent = 'Installing…'
+  }
 }
 
 /* ---------------- sidebar tree ---------------- */
