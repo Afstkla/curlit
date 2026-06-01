@@ -25,8 +25,15 @@ async function checkUpdate(currentVersion, repo = 'Afstkla/curlit') {
     const rel = JSON.parse(await res.body.text())
     const latest = rel.tag_name || rel.name
     if (!latest || !isNewer(latest, currentVersion)) return { available: false }
-    const dmg = (rel.assets || []).find(a => a.name && a.name.endsWith('.dmg'))
-    return { available: true, version: latest, url: (dmg && dmg.browser_download_url) || rel.html_url }
+    const assets = rel.assets || []
+    const dmg = assets.find(a => a.name && a.name.endsWith('.dmg'))
+    const zip = assets.find(a => a.name && a.name.endsWith('.zip'))
+    return {
+      available: true,
+      version: latest,
+      url: (dmg && dmg.browser_download_url) || rel.html_url,
+      zipUrl: zip && zip.browser_download_url
+    }
   } catch (e) {
     return { available: false, error: e.message }
   }

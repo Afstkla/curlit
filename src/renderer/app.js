@@ -9,6 +9,16 @@ let collections = []      // [{id, name, items:[node]}]
 let active = null         // { col, req }  references into `collections`
 let dirty = false
 
+// Remember which collections/folders are collapsed, across reloads + imports.
+const COLLAPSE_KEY = 'curlit.collapsed'
+let collapsedSet = new Set()
+try { collapsedSet = new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')) } catch { /* ignore */ }
+function isCollapsed(id) { return collapsedSet.has(id) }
+function setCollapsed(id, v) {
+  if (v) collapsedSet.add(id); else collapsedSet.delete(id)
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsedSet])) } catch { /* ignore */ }
+}
+
 /* ---------------- boot ---------------- */
 let setupRepoUrl = ''
 let currentUserCode = ''
@@ -82,12 +92,27 @@ async function checkForUpdate() {
   if (!api.checkUpdate) return
   try {
     const u = await api.checkUpdate()
-    if (u && u.available) {
-      $('update-text').textContent = `Curlit ${u.version} is available`
-      $('update-download').onclick = () => api.openExternal(u.url)
-      $('update-dismiss').onclick = () => $('update-banner').classList.add('hidden')
-      $('update-banner').classList.remove('hidden')
+    if (!u || !u.available) return
+    const canInPlace = !!(u.zipUrl && api.applyUpdate)
+    $('update-text').textContent = `Curlit ${u.version} is available`
+    const btn = $('update-download')
+    btn.textContent = canInPlace ? 'Update & restart' : 'Download'
+    btn.disabled = false
+    btn.onclick = async () => {
+      if (!canInPlace) { api.openExternal(u.url); return }
+      btn.disabled = true; btn.textContent = 'Updating…'
+      const r = await api.applyUpdate(u.zipUrl)
+      if (r && r.ok) { $('update-text').textContent = 'Restarting Curlit…' }
+      else {
+        btn.disabled = false; btn.textContent = 'Download'
+        $('update-text').textContent = (r && r.error === 'no-permission')
+          ? 'Couldn’t update in place — downloading instead:'
+          : `Curlit ${u.version} is available`
+        api.openExternal(u.url)
+      }
     }
+    $('update-dismiss').onclick = () => $('update-banner').classList.add('hidden')
+    $('update-banner').classList.remove('hidden')
   } catch { /* update check is best-effort */ }
 }
 
@@ -119,7 +144,13 @@ function renderCollection(col) {
   const children = el('div', 'node-children')
 
   head.append(twist, name, add, del)
-  head.addEventListener('click', (e) => { if (e.target === add || e.target === del) return; head.classList.toggle('collapsed'); children.classList.toggle('hidden') })
+  if (isCollapsed(col.id)) { head.classList.add('collapsed'); children.classList.add('hidden') }
+  head.addEventListener('click', (e) => {
+    if (e.target === add || e.target === del) return
+    const c = head.classList.toggle('collapsed')
+    children.classList.toggle('hidden', c)
+    setCollapsed(col.id, c)
+  })
   add.addEventListener('click', (e) => { e.stopPropagation(); addRequest(col) })
   del.addEventListener('click', async (e) => {
     e.stopPropagation()
@@ -142,7 +173,8 @@ function renderNode(node, col) {
     const name = el('span', 'col-name', node.name)
     head.append(twist, name)
     const children = el('div', 'node-children')
-    head.addEventListener('click', () => wrap.classList.toggle('collapsed'))
+    if (isCollapsed(node.id)) wrap.classList.add('collapsed')
+    head.addEventListener('click', () => { const c = wrap.classList.toggle('collapsed'); setCollapsed(node.id, c) })
     for (const child of node.items) children.appendChild(renderNode(child, col))
     wrap.append(head, children)
     return wrap

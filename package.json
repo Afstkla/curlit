@@ -1,6 +1,6 @@
 {
   "name": "curlit",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A no-frills REST client that syncs through a private GitHub repo.",
   "author": "Afstkla",
   "main": "src/main/main.js",
@@ -37,7 +37,10 @@
       "repo": "curlit"
     },
     "mac": {
-      "target": "dmg",
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "category": "public.app-category.developer-tools"
     }
   }

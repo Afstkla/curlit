@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld('curlit', {
   launchPull: () => call('launchPull'),
   // misc
   openExternal: (url) => call('openExternal', url),
-  checkUpdate: () => call('checkUpdate')
+  checkUpdate: () => call('checkUpdate'),
+  applyUpdate: (zipUrl) => call('applyUpdate', zipUrl)
 })

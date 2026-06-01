@@ -31,6 +31,7 @@
       completeDeviceAuth: async () => ({ ok: true }),
       openExternal: async () => true,
       checkUpdate: async () => ({ available: false }),
+      applyUpdate: async () => ({ ok: true }),
       launchPull: async () => true,
       listTree: async () => JSON.parse(JSON.stringify(_sample)),
       saveCollection: async () => true,

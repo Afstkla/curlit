@@ -7,6 +7,7 @@ const settings = require('./settings')
 const git = require('./git')
 const oauth = require('./oauth')
 const update = require('./update')
+const selfUpdate = require('./selfUpdate')
 const { loadBundledConfig } = require('./config')
 const { cloneDir } = require('./paths')
 const { importPostman } = require('../shared/postman')
@@ -113,5 +114,10 @@ function registerIpc() {
   // --- misc ---
   ipcMain.handle('openExternal', (_e, url) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return true })
   ipcMain.handle('checkUpdate', () => update.checkUpdate(app.getVersion()))
+  ipcMain.handle('applyUpdate', async (_e, zipUrl) => {
+    const r = await selfUpdate.applyUpdate(zipUrl, process.execPath)
+    if (r.ok) setTimeout(() => app.quit(), 400) // let the renderer get the reply, then quit so the swap can run
+    return r
+  })
 }
 module.exports = { registerIpc }
