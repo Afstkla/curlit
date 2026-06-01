@@ -15,23 +15,58 @@
   <div id="setup" class="setup hidden">
     <div class="setup-card">
       <div class="brand-mark">curlit<span class="cursor">_</span></div>
-      <p class="setup-lede">Point Curlit at your private GitHub repo. Your collections sync there; secrets stay on this Mac.</p>
-      <label class="field">
-        <span>Repo URL <em>(HTTPS)</em></span>
-        <input id="setup-repo" type="text" spellcheck="false" placeholder="https://github.com/your-org/curlit-collections.git" />
-      </label>
-      <label class="field">
-        <span>GitHub token <em>(repo contents: read/write)</em></span>
-        <input id="setup-pat" type="password" spellcheck="false" placeholder="github_pat_…" />
-      </label>
-      <button id="setup-go" class="btn-primary">Connect</button>
-      <div id="setup-status" class="setup-status"></div>
+
+      <!-- idle: connect -->
+      <div id="setup-idle">
+        <h2 class="setup-title">Welcome to Curlit</h2>
+        <p class="setup-lede">Curlit keeps your saved requests backed up and shared with your team through GitHub. You only need to do this once.</p>
+
+        <div class="setup-repo-block">
+          <label class="field" id="repo-field">
+            <span>Your team's request library</span>
+            <input id="setup-repo" type="text" spellcheck="false" placeholder="https://github.com/your-team/curlit-collections.git" />
+            <small class="hint">Not sure what this is? Ask whoever set Curlit up for your team.</small>
+          </label>
+          <div id="repo-known" class="repo-known hidden">
+            <span class="repo-known-label">Connecting to</span>
+            <span id="repo-known-url" class="repo-known-url"></span>
+          </div>
+        </div>
+
+        <button id="connect-github" class="btn-primary btn-github">
+          <span class="gh-glyph">⌥</span> Connect with GitHub
+        </button>
+        <p class="setup-fineprint">A browser window will open so you can approve access. Curlit signs in as you — nothing is shared, and you can revoke it anytime in GitHub settings.</p>
+        <div id="setup-status" class="setup-status"></div>
+      </div>
+
+      <!-- pending: show device code -->
+      <div id="setup-pending" class="hidden">
+        <h2 class="setup-title">Almost there</h2>
+        <p class="setup-lede">In the GitHub tab that just opened, enter this code and click <b>Authorize</b>:</p>
+        <div class="code-display">
+          <span id="device-code" class="device-code">————</span>
+          <button id="copy-code" class="copy-code" title="Copy code">⧉</button>
+        </div>
+        <button id="reopen-github" class="btn-ghost full">Re-open GitHub</button>
+        <div class="waiting-row">
+          <span class="spinner"></span>
+          <span id="waiting-text">Waiting for you to authorize…</span>
+        </div>
+        <button id="cancel-auth" class="btn-text">Cancel</button>
+      </div>
     </div>
     <div class="setup-glow"></div>
   </div>
 
   <!-- App shell -->
   <div id="app" class="app hidden">
+    <div id="update-banner" class="update-banner hidden">
+      <span class="update-spark">↑</span>
+      <span id="update-text"></span>
+      <button id="update-download" class="btn-pill">Download</button>
+      <button id="update-dismiss" class="banner-x" title="Dismiss">✕</button>
+    </div>
     <aside class="sidebar">
       <div class="sidebar-head">
         <div class="brand-mark sm">curlit<span class="cursor">_</span></div>

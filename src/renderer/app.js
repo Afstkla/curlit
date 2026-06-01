@@ -10,31 +10,61 @@ let active = null         // { col, req }  references into `collections`
 let dirty = false
 
 /* ---------------- boot ---------------- */
+let setupRepoUrl = ''
+let currentUserCode = ''
+let currentVerifyUri = 'https://github.com/login/device'
+
 async function boot() {
   const setup = await api.getSetup()
-  if (!setup || !setup.repoUrl) { showSetup(); return }
-  await startApp()
+  if (setup && setup.repoUrl) { await startApp(); return }
+  await showSetup()
 }
 
-function showSetup() {
+async function showSetup() {
+  const cfg = (await api.getConfig()) || {}
   $('setup').classList.remove('hidden')
-  $('setup-go').addEventListener('click', doSetup)
-  $('setup-pat').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSetup() })
+  if (cfg.repoUrl) {
+    setupRepoUrl = cfg.repoUrl
+    $('repo-field').classList.add('hidden')
+    $('repo-known').classList.remove('hidden')
+    $('repo-known-url').textContent = cfg.repoUrl
+  }
+  $('connect-github').addEventListener('click', connectGithub)
+  $('copy-code').addEventListener('click', () => { if (currentUserCode) navigator.clipboard.writeText(currentUserCode) })
+  $('reopen-github').addEventListener('click', () => api.openExternal(currentVerifyUri))
+  $('cancel-auth').addEventListener('click', () => {
+    $('setup-pending').classList.add('hidden')
+    $('setup-idle').classList.remove('hidden')
+    setStatus('')
+  })
 }
 
-async function doSetup() {
-  const repoUrl = $('setup-repo').value.trim()
-  const pat = $('setup-pat').value.trim()
-  const status = $('setup-status')
-  if (!repoUrl) { status.textContent = 'Repo URL is required.'; return }
-  status.className = 'setup-status busy'; status.textContent = 'Connecting & cloning…'
-  try {
-    await api.saveSetup({ repoUrl, pat })
-    $('setup').classList.add('hidden')
-    await startApp()
-  } catch (e) {
-    status.className = 'setup-status'; status.textContent = 'Failed: ' + (e.message || e)
+function setStatus(msg, cls) { const s = $('setup-status'); s.className = 'setup-status' + (cls ? ' ' + cls : ''); s.textContent = msg }
+
+async function connectGithub() {
+  const repoUrl = setupRepoUrl || $('setup-repo').value.trim()
+  if (!repoUrl) { setStatus('Please paste your team’s repository link first.'); return }
+  setupRepoUrl = repoUrl
+  setStatus('Starting GitHub sign-in…', 'busy')
+  const start = await api.startDeviceAuth()
+  if (start.error) { setStatus(start.error); return }
+  const info = start.info
+  currentUserCode = info.user_code
+  currentVerifyUri = info.verification_uri || 'https://github.com/login/device'
+  $('setup-idle').classList.add('hidden')
+  $('setup-pending').classList.remove('hidden')
+  $('device-code').textContent = info.user_code
+  api.openExternal(currentVerifyUri)
+
+  const res = await api.completeDeviceAuth(repoUrl, info)
+  if (res.error) {
+    $('setup-pending').classList.add('hidden')
+    $('setup-idle').classList.remove('hidden')
+    setStatus(res.error)
+    return
   }
+  $('setup').classList.add('hidden')
+  await startApp()
 }
 
 async function startApp() {
@@ -45,6 +75,20 @@ async function startApp() {
   try { await api.launchPull() } catch {}
   await refreshTree()
   setSync('ok', 'synced')
+  checkForUpdate()
+}
+
+async function checkForUpdate() {
+  if (!api.checkUpdate) return
+  try {
+    const u = await api.checkUpdate()
+    if (u && u.available) {
+      $('update-text').textContent = `Curlit ${u.version} is available`
+      $('update-download').onclick = () => api.openExternal(u.url)
+      $('update-dismiss').onclick = () => $('update-banner').classList.add('hidden')
+      $('update-banner').classList.remove('hidden')
+    }
+  } catch { /* update check is best-effort */ }
 }
 
 /* ---------------- sidebar tree ---------------- */

@@ -25,7 +25,12 @@
     }]
     window.curlit = {
       getSetup: async () => ({ repoUrl: 'https://github.com/acme/collections.git' }),
-      saveSetup: async () => true,
+      getConfig: async () => ({ repoUrl: 'https://github.com/acme/collections.git', hasClientId: true }),
+      getVersion: async () => '0.2.0',
+      startDeviceAuth: async () => ({ ok: true, info: { user_code: 'WDJB-MJHT', verification_uri: 'https://github.com/login/device', device_code: 'x', interval: 5, expires_in: 900 } }),
+      completeDeviceAuth: async () => ({ ok: true }),
+      openExternal: async () => true,
+      checkUpdate: async () => ({ available: false }),
       launchPull: async () => true,
       listTree: async () => JSON.parse(JSON.stringify(_sample)),
       saveCollection: async () => true,
