@@ -5,6 +5,29 @@ const $ = (id) => document.getElementById(id)
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e }
 const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 
+function safeDecode(s) { try { return decodeURIComponent(s) } catch { return s } }
+
+// Split a URL into its base and a list of query params. Keeps {{vars}} intact.
+function splitUrl(raw) {
+  const qi = (raw || '').indexOf('?')
+  if (qi === -1) return { base: raw || '', params: [] }
+  const base = raw.slice(0, qi)
+  const params = raw.slice(qi + 1).split('&').filter(Boolean).map(pair => {
+    const eq = pair.indexOf('=')
+    const key = eq === -1 ? pair : pair.slice(0, eq)
+    const value = eq === -1 ? '' : pair.slice(eq + 1)
+    return { key: safeDecode(key), value: safeDecode(value), enabled: true }
+  })
+  return { base, params }
+}
+
+// Merge URL-derived params with an existing list, de-duped by key (URL wins order).
+function mergeParams(urlParams, existing) {
+  const merged = [...urlParams]
+  for (const p of existing || []) if (!merged.some(m => m.key === p.key)) merged.push(p)
+  return merged
+}
+
 let collections = []      // [{id, name, items:[node]}]
 let active = null         // { col, req }  references into `collections`
 let dirty = false
@@ -81,6 +104,7 @@ async function startApp() {
   $('app').classList.remove('hidden')
   buildMethodSelect()
   wireEditor()
+  if (api.onCheckUpdate) api.onCheckUpdate(() => checkForUpdate(true))
   setSync('busy', 'pulling…')
   try { await api.launchPull() } catch {}
   await refreshTree()
@@ -88,14 +112,23 @@ async function startApp() {
   checkForUpdate()
 }
 
-async function checkForUpdate() {
+function showUpToDate() {
+  $('update-text').textContent = 'You’re on the latest version'
+  $('update-download').classList.add('hidden')
+  $('update-dismiss').onclick = () => $('update-banner').classList.add('hidden')
+  $('update-banner').classList.remove('hidden')
+  setTimeout(() => $('update-banner').classList.add('hidden'), 2800)
+}
+
+async function checkForUpdate(manual) {
   if (!api.checkUpdate) return
   try {
     const u = await api.checkUpdate()
-    if (!u || !u.available) return
+    if (!u || !u.available) { if (manual) showUpToDate(); return }
     const canInPlace = !!(u.zipUrl && api.applyUpdate)
     $('update-text').textContent = `Curlit ${u.version} is available`
     const btn = $('update-download')
+    btn.classList.remove('hidden')
     btn.textContent = canInPlace ? 'Update & restart' : 'Download'
     btn.disabled = false
     btn.onclick = async () => {
@@ -238,6 +271,17 @@ function wireEditor() {
   $('resp-copy').addEventListener('click', copyResponse)
   ;[$('method'), $('url'), $('body-text')].forEach(e => e.addEventListener('input', markDirty))
   $('method').addEventListener('change', () => { if (active) { active.req.method = $('method').value; updateVerbBadge() } })
+  $('url').addEventListener('blur', absorbUrlQuery)
+}
+
+// If the URL bar holds a query string, move it into the Params tab.
+function absorbUrlQuery() {
+  const raw = $('url').value
+  if (raw.indexOf('?') === -1) return
+  const { base, params } = splitUrl(raw)
+  $('url').value = base
+  renderKV('params-rows', mergeParams(params, readKV('params-rows')), 'name', 'value')
+  markDirty()
 }
 
 function openRequest(col, req) {
@@ -247,8 +291,9 @@ function openRequest(col, req) {
   document.querySelectorAll('.req-row').forEach(r => r.classList.toggle('active', r.dataset.reqId === req.id))
 
   $('method').value = req.method || 'GET'
-  $('url').value = req.url || ''
-  renderKV('params-rows', req.params, 'name', 'value')
+  const { base, params: urlParams } = splitUrl(req.url || '')
+  $('url').value = base
+  renderKV('params-rows', mergeParams(urlParams, req.params), 'name', 'value')
   renderKV('headers-rows', req.headers, 'header', 'value')
 
   // body

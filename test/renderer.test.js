@@ -40,7 +40,18 @@ test('renderer: boots, renders tree, opens a request, renders a response', async
   assert.strictEqual(pill.textContent, '200')
   assert.ok(pill.classList.contains('ok'), 'status pill should be ok-colored')
 
-  // secret hydration: bearer token field filled from getSecret mock
-  doc.getElementById('auth-type').value = 'bearer'
+  // params inferred from the opened request's URL query (?limit=20), URL bar holds the base
+  const paramRows = doc.querySelectorAll('#params-rows .kv-row')
+  const paramKeys = [...paramRows].map(r => r.querySelectorAll('input[type=text]')[0].value)
+  assert.ok(paramKeys.includes('limit'), 'query param "limit" should appear in the Params tab')
+  assert.ok(!doc.getElementById('url').value.includes('?'), 'URL bar should not keep the query string')
+
+  // splitUrl handles {{vars}} without mangling them
+  const sp = dom.window.splitUrl('https://api.studio.neople.io/v1/customer_service/skills?neople_id={{neople_id}}')
+  assert.strictEqual(sp.base, 'https://api.studio.neople.io/v1/customer_service/skills')
+  assert.strictEqual(sp.params.length, 1)
+  assert.strictEqual(sp.params[0].key, 'neople_id')
+  assert.strictEqual(sp.params[0].value, '{{neople_id}}')
+
   dom.window.close()
 })
